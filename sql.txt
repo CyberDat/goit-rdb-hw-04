@@ -1,0 +1,113 @@
+-- ==========================================
+-- ЗАВДАННЯ 1-2: Створення та наповнення LibraryManagement
+-- ==========================================
+
+CREATE DATABASE IF NOT EXISTS LibraryManagement;
+USE LibraryManagement;
+
+-- Створення таблиць (DDL)
+CREATE TABLE authors (
+    author_id INT AUTO_INCREMENT PRIMARY KEY,
+    author_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE genres (
+    genre_id INT AUTO_INCREMENT PRIMARY KEY,
+    genre_name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE books (
+    book_id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    publication_year YEAR,
+    author_id INT,
+    genre_id INT,
+    FOREIGN KEY (author_id) REFERENCES authors(author_id) ON DELETE CASCADE,
+    FOREIGN KEY (genre_id) REFERENCES genres(genre_id) ON DELETE SET NULL
+);
+
+CREATE TABLE users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) NOT NULL,
+    email VARCHAR(150) UNIQUE NOT NULL
+);
+
+CREATE TABLE borrowed_books (
+    borrow_id INT AUTO_INCREMENT PRIMARY KEY,
+    book_id INT,
+    user_id INT,
+    borrow_date DATE NOT NULL,
+    return_date DATE,
+    FOREIGN KEY (book_id) REFERENCES books(book_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- Наповнення даними (DML)
+INSERT INTO authors (author_name) VALUES ('Тарас Шевченко'), ('Іван Франко');
+INSERT INTO genres (genre_name) VALUES ('Поезія'), ('Проза');
+INSERT INTO users (username, email) VALUES ('petrenko', 'petr@ukr.net'), ('melnychuk', 'meln@ukr.net');
+INSERT INTO books (title, publication_year, author_id, genre_id) VALUES ('Кобзар', 1980, 1, 1), ('Борислав сміється', 1985, 2, 2);
+INSERT INTO borrowed_books (book_id, user_id, borrow_date, return_date) VALUES (1, 1, '2024-03-28', '2024-03-31');
+
+
+-- ==========================================
+-- ЗАВДАННЯ 3-4: Аналітика бази даних hw3
+-- ==========================================
+
+USE hw3;
+
+-- 3. Об'єднання всіх таблиць (INNER JOIN)
+SELECT 
+    o.id AS order_id, o.date, od.product_id, p.name AS product_name, 
+    cat.name AS category_name, cat.description AS category_descr, 
+    od.quantity, p.unit, p.price, c.name AS customer_name, 
+    e.last_name AS employee_last_name, e.first_name AS employee_first_name, 
+    sh.name AS shipper_name, s.name AS supplier_name
+FROM orders o
+INNER JOIN order_details od ON o.id = od.order_id
+INNER JOIN shippers sh ON sh.id = o.shipper_id
+INNER JOIN employees e ON e.employee_id = o.employee_id
+INNER JOIN products p ON p.id = od.product_id
+INNER JOIN suppliers s ON s.id = p.supplier_id
+INNER JOIN categories cat ON cat.id = p.category_id
+INNER JOIN customers c ON c.id = o.customer_id;
+
+-- 4.1 Підрахунок загальної кількості рядків
+SELECT COUNT(*) FROM order_details;
+
+-- 4.3 Фільтрація за employee_id (3 < ID <= 10)
+SELECT COUNT(*) 
+FROM orders o
+INNER JOIN employees e ON o.employee_id = e.employee_id
+WHERE e.employee_id > 3 AND e.employee_id <= 10;
+
+-- 4.4 - 4.6 Групування, HAVING та Сортування
+SELECT 
+    cat.name AS category_name, 
+    AVG(od.quantity) AS avg_quantity, 
+    COUNT(*) AS total_in_category
+FROM orders o
+INNER JOIN order_details od ON o.id = od.order_id
+INNER JOIN products p ON p.id = od.product_id
+INNER JOIN categories cat ON cat.id = p.category_id
+INNER JOIN employees e ON e.employee_id = o.employee_id
+WHERE e.employee_id > 3 AND e.employee_id <= 10
+GROUP BY cat.name
+HAVING avg_quantity > 21
+ORDER BY total_in_category DESC;
+
+-- 4.7 Вибірка з пропуском (4 рядки, пропуск першого)
+SELECT 
+    cat.name AS category_name, 
+    AVG(od.quantity) AS avg_quantity, 
+    COUNT(*) AS total_in_category
+FROM orders o
+INNER JOIN order_details od ON o.id = od.order_id
+INNER JOIN products p ON p.id = od.product_id
+INNER JOIN categories cat ON cat.id = p.category_id
+INNER JOIN employees e ON e.employee_id = o.employee_id
+WHERE e.employee_id > 3 AND e.employee_id <= 10
+GROUP BY cat.name
+HAVING avg_quantity > 21
+ORDER BY total_in_category DESC
+LIMIT 4 OFFSET 1;
